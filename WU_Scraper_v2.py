@@ -15,7 +15,7 @@ urls_ciudades = [
 ]
 ciudades = ['CAB', 'HMO', 'OBR', 'LMO', 'CUL']
 
-@st.experimental_memo(ttl=60)  # Actualiza los datos cada 60 segundos
+@st.cache(ttl=60)  # Actualiza los datos cada 60 segundos
 def obtener_datos(url):
     response = requests.get(url)
     data = response.json()
