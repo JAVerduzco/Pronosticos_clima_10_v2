@@ -15,7 +15,7 @@ urls_ciudades = [
 ]
 ciudades = ['CAB', 'HMO', 'OBR', 'LMO', 'CUL']
 
-@st.cache(ttl=60)  # Actualiza los datos cada 60 segundos
+@st.cache_data(ttl=60)  # Actualiza los datos cada 60 segundos
 def obtener_datos(url):
     response = requests.get(url)
     data = response.json()
@@ -58,5 +58,3 @@ df = df[:-1]
 
 # Impresión de tabla en pantalla
 st.dataframe(df, use_container_width=True)
-
-
