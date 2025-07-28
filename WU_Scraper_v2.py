@@ -19,44 +19,38 @@ def obtener_datos(url):
     response = requests.get(url)
     data = response.json()
     return data
-    
-if st.button("Actualizar datos"):
-    st.experimental_rerun()
 
 df = pd.DataFrame()
 
+# Temperaturas máximas
 for i, url in enumerate(urls_ciudades):
     datos = obtener_datos(url)
-    if datos:  # Solo procesar si se obtuvieron datos
-        df[f'{ciudades[i]}_TempMax'] = datos['calendarDayTemperatureMax']  # Valores correspondientes a la key 'calendarDayTemperatureMax'
+    if datos:
+        df[f'{ciudades[i]}_TempMax'] = datos['calendarDayTemperatureMax']
 
+# Temperaturas mínimas
 for i, url in enumerate(urls_ciudades):
     datos = obtener_datos(url)
-    if datos:  # Solo procesar si se obtuvieron datos
-        df[f'{ciudades[i]}_TempMin'] = datos['calendarDayTemperatureMin']  # Valores correspondientes a la key 'calendarDayTemperatureMin'
+    if datos:
+        df[f'{ciudades[i]}_TempMin'] = datos['calendarDayTemperatureMin']
 
+# Precipitación (QPF)
 for i, url in enumerate(urls_ciudades):
     datos = obtener_datos(url)
-    if datos:  # Solo procesar si se obtuvieron datos
-        if i == 0:
-            continue
-        else:
-            df[f'{ciudades[i]}_QPF'] = datos['qpf']  # Valores correspondientes a la key 'qpf'
+    if datos and i != 0:
+        df[f'{ciudades[i]}_QPF'] = datos['qpf']
 
+# Fechas
 fechas = obtener_datos(urls_ciudades[0])['sunriseTimeLocal']
 
-# Function para formatear fechas
 def formato_fecha(fechas):
     parsed_date = datetime.strptime(fechas, '%Y-%m-%dT%H:%M:%S%z')
     return parsed_date.strftime('%Y-%m-%d')
 
-# Aplicar la function a la lista
 formatted_dates = [formato_fecha(date) for date in fechas]
-
-# Asignar las fechas como índices
 df.index = formatted_dates
-
 df = df[:-1]
 
-# Impresión de tabla en pantalla
+# Mostrar tabla
 st.dataframe(df, use_container_width=True)
+
