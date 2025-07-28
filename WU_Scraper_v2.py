@@ -19,6 +19,9 @@ def obtener_datos(url):
     response = requests.get(url)
     data = response.json()
     return data
+    
+if st.button("Actualizar datos"):
+    st.experimental_rerun()
 
 df = pd.DataFrame()
 
