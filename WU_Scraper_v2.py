@@ -3,12 +3,10 @@ import requests
 import pandas as pd
 from datetime import datetime
 
-st.set_page_config(page_title="Pronóstico 10 días", layout="wide")
-
-# Título
+# Título de la aplicación
 st.title("🌤️ Pronóstico del tiempo - 10 días")
 
-# Coordenadas y nombres de ciudades
+# Lista de URLs y ciudades
 urls_ciudades = [
     'https://api.weather.com/v3/wx/forecast/daily/10day?apiKey=TU_API_KEY&geocode=30.496%2C-112.323&units=m&language=en-US&format=json',  # Caborca
     'https://api.weather.com/v3/wx/forecast/daily/10day?apiKey=TU_API_KEY&geocode=29.1%2C-110.951&units=m&language=en-US&format=json',    # Hermosillo
@@ -18,53 +16,59 @@ urls_ciudades = [
 ]
 ciudades = ['CAB', 'HMO', 'OBR', 'LMO', 'CUL']
 
-# Obtener datos desde la API
-@st.cache_data(show_spinner=True, ttl=3600)  # Cachea por 1 hora
-def obtener_datos_actualizados():
-    datos_ciudades = []
-    for url in urls_ciudades:
-        try:
-            response = requests.get(url)
-            datos = response.json()
-            datos_ciudades.append(datos)
-        except Exception as e:
-            st.error(f"Error al obtener datos de la API: {e}")
-            return None
-    return datos_ciudades
+def obtener_datos(url):
+    response = requests.get(url)
+    data = response.json()
+    return data
 
-# Formateo de fecha
+df = pd.DataFrame()
+
+# Primer ciclo: temperaturas máximas
+for i, url in enumerate(urls_ciudades):
+    datos = obtener_datos(url)
+    if datos:
+        df[f'{ciudades[i]}_TempMax'] = datos['calendarDayTemperatureMax']
+
+# Segundo ciclo: temperaturas mínimas
+for i, url in enumerate(urls_ciudades):
+    datos = obtener_datos(url)
+    if datos:
+        df[f'{ciudades[i]}_TempMin'] = datos['calendarDayTemperatureMin']
+
+# Tercer ciclo: QPF (excepto para la primera ciudad)
+for i, url in enumerate(urls_ciudades):
+    datos = obtener_datos(url)
+    if datos:
+        if i == 0:
+            continue
+        else:
+            df[f'{ciudades[i]}_QPF'] = datos['qpf']
+
+# Fechas
+fechas = obtener_datos(urls_ciudades[0])['sunriseTimeLocal']
+
+# Formato de fecha
 def formato_fecha(fechas):
     parsed_date = datetime.strptime(fechas, '%Y-%m-%dT%H:%M:%S%z')
     return parsed_date.strftime('%Y-%m-%d')
 
-# Procesar datos
-datos_ciudades = obtener_datos_actualizados()
-if datos_ciudades:
-    df = pd.DataFrame()
+formatted_dates = [formato_fecha(date) for date in fechas]
 
-    for i, datos in enumerate(datos_ciudades):
-        ciudad = ciudades[i]
-        df[f'{ciudad}_TempMax'] = datos['calendarDayTemperatureMax']
-        df[f'{ciudad}_TempMin'] = datos['calendarDayTemperatureMin']
-        if i != 0:
-            df[f'{ciudad}_QPF'] = datos['qpf']
+# Índices
+df.index = formatted_dates
 
-    # Fechas desde primera ciudad
-    fechas = datos_ciudades[0]['validTimeLocal']
-    formatted_dates = [formato_fecha(date) for date in fechas]
-    df.index = formatted_dates
+# Eliminar último registro
+df = df[:-1]
 
-    # Mostrar tabla
-    st.subheader("📋 Tabla de Pronóstico")
-    st.dataframe(df[:-1], use_container_width=True)
+# Mostrar tabla
+st.subheader("📋 Tabla de datos")
+st.dataframe(df, use_container_width=True)
 
-    # Descargar CSV
-    csv = df.to_csv(index=True).encode('utf-8')
-    st.download_button(
-        label="⬇️ Descargar CSV",
-        data=csv,
-        file_name='PronTemp10dias.csv',
-        mime='text/csv'
-    )
-else:
-    st.warning("No se pudieron obtener los datos.")
+# Descargar CSV
+csv = df.to_csv().encode('utf-8')
+st.download_button(
+    label="⬇️ Descargar CSV",
+    data=csv,
+    file_name='PronTemp10dias.csv',
+    mime='text/csv'
+)
